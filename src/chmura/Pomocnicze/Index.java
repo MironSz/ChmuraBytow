@@ -1,3 +1,5 @@
+package chmura.Pomocnicze;
+
 /**
  * Created by Miron on 22.11.2017.
  */
@@ -23,6 +25,14 @@ public class Index {
 
         if (x != index.x) return false;
         return y == index.y;
+    }
+
+    @Override
+    public String toString() {
+        return "Index{" +
+                "x=" + x +
+                ", y=" + y +
+                '}';
     }
 
     @Override

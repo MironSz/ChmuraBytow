@@ -1,3 +1,7 @@
+package chmura;
+
+import chmura.Pomocnicze.Index;
+
 import java.util.*;
 import java.util.function.BiPredicate;
 
@@ -14,18 +18,7 @@ public class Chmura {
 
     private List<Byt> chmura = new LinkedList<>();
     private HashMap<Byt,Index> bytIndexHashMap = new HashMap<>();
-    private HashSet<Index> indexHashSet = new HashSet<>();
-
-    private boolean możnaPrzestawić(Collection<Byt> byty, int dx, int dy) throws NieBytException {
-        for(Byt byt : byty) {
-            if(bytIndexHashMap.containsKey(byt) == false)
-                throw new NieBytException();
-            if (indexHashSet.contains(bytIndexHashMap.get(byt).plusXY(dx, dy)) == true)
-                return false;
-        }
-
-        return true;
-    }
+    private HashMap<Index,Byt> indexBytHashMap = new HashMap<>();
 
     public Chmura(){}
 
@@ -41,12 +34,12 @@ public class Chmura {
                     this.wait();
             }
             try{
-                while(indexHashSet.contains(new Index(x,y))){
+                while(indexBytHashMap.containsKey(new Index(x,y))){
                     this.wait();
                 }
                 result = new Byt();
                 bytIndexHashMap.put(result,new Index(x,y));
-                indexHashSet.add(new Index(x,y));
+                indexBytHashMap.put(new Index(x,y), result);
 
             }   catch (Exception e){
                 throw e;
@@ -55,16 +48,27 @@ public class Chmura {
         return result;
     }
 
+    private boolean możnaPrzestawić(Collection<Byt> byty, int dx, int dy) throws NiebytException {
+        for(Byt byt : byty) {
+
+            if(bytIndexHashMap.containsKey(byt) == false)
+                throw new NiebytException();
+            if (indexBytHashMap.containsKey(bytIndexHashMap.get(byt).plusXY(dx, dy)) == true && byty.contains(indexBytHashMap.get(bytIndexHashMap.get(byt).plusXY(dx, dy))) == false )
+                return false;
+        }
+        return true;
+    }
+
     private void operacjaPrzestawiania(Collection<Byt> byty, int dx, int dy){
         for(Byt byt : byty){
             Index index = bytIndexHashMap.get(byt);
             bytIndexHashMap.replace(byt,index,index.plusXY(dx,dy));
-            indexHashSet.remove(index);
-            indexHashSet.add(index.plusXY(dx,dy));
+            indexBytHashMap.remove(index);
+            indexBytHashMap.put(index.plusXY(dx,dy),byt);
         }
     }
 
-    public void przestaw(Collection<Byt> byty, int dx, int dy) throws NieBytException,InterruptedException{
+    public void przestaw(Collection<Byt> byty, int dx, int dy) throws NiebytException,InterruptedException{
         synchronized (this){
             try{
                 while(możnaPrzestawić(byty,dx,dy) == false){
@@ -73,20 +77,21 @@ public class Chmura {
                 operacjaPrzestawiania(byty,dx,dy);
             }catch (InterruptedException e){
                 e.printStackTrace();
-            } catch (NieBytException e){
+            } catch (NiebytException e){
                 e.printStackTrace();
             }
+            this.notifyAll();
         }
-        this.notifyAll();
     }
 
-    void kasuj(Byt byt) throws NieBytException{
+    void kasuj(Byt byt) throws NiebytException {
         synchronized (this) {
-            if (indexHashSet.contains(byt) == false) {
-                throw new NieBytException();
+            if (bytIndexHashMap.containsKey(byt) == false) {
+                throw new NiebytException();
             }
+            Index index = bytIndexHashMap.get(byt);
             bytIndexHashMap.remove(byt);
-            indexHashSet.remove(byt);
+            indexBytHashMap.remove(index);
             this.notifyAll();
         }
     }
